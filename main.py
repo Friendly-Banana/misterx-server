@@ -20,14 +20,6 @@ app = FastAPI()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-
 class Lobby:
     code: str | None
     player: list[int]
@@ -84,6 +76,13 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
     return user
 
 
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
 def success(msg: str = "Success"):
     return {"200": msg}
 
@@ -107,31 +106,32 @@ async def create(user: schemas.PlayerCreate, db: Session = Depends(get_db)):
     return success()
 
 
-@app.get("/join/{lobby}")
-async def join(lobby: str):
+@app.get("/join/{lobby_code}")
+async def join(lobby_code: str, db: Session = Depends(get_db)):
+    crud.create_player(db, user.name)
     return {"message": "Hello"}
 
 
 @app.get("/kick/{player}")
-async def kick(player: int):
+async def kick(player: int, db: Session = Depends(get_db)):
     return {"message": "Hello"}
 
 
 @app.get("/leave")
-async def leave():
+async def leave(, db: Session = Depends(get_db)):
     return {"message": "Hello"}
 
 
 @app.get("/start")
-async def start():
+async def start(, db: Session = Depends(get_db)):
     return {"message": "Hello"}
 
 
 @app.get("/pos/{pos}")
-async def upload_position(pos: str):
+async def upload_position(pos: str, db: Session = Depends(get_db)):
     return {"message": "Hello"}
 
 
 @app.get("/player")
-async def get_player():
+async def get_player_positions(, db: Session = Depends(get_db)):
     return {"message": "Hello"}

@@ -21,7 +21,7 @@ class Player(PlayerBase):
 
 
 class LobbyBase(BaseModel):
-    email: str
+    host: Player
 
 
 class LobbyCreate(LobbyBase):
@@ -30,9 +30,9 @@ class LobbyCreate(LobbyBase):
 
 class Lobby(LobbyBase):
     id: int
+    code: str
     created: datetime.datetime
     started: bool
-    host: Player
     player: list[Player] = []
 
     class Config:

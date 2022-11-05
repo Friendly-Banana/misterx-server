@@ -21,6 +21,7 @@ class Lobby(Base):
     __tablename__ = "lobbies"
 
     id = Column(Integer, primary_key=True)
+    code = Column(String)
     created = Column(TIMESTAMP)
     host = Column(Player, ForeignKey("player.id"))
     started = Column(bool)
