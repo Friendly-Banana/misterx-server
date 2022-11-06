@@ -1,0 +1,161 @@
+from datetime import timedelta, datetime
+
+import uvicorn
+from fastapi import FastAPI, Depends, HTTPException, Response
+from jose import jwt, JWTError
+from pydantic import BaseModel
+from sqlalchemy.orm import Session
+from starlette import status
+
+from app.sql import crud
+from app.sql.database import Base, engine, SessionLocal
+from app.sql.schemas import Player, Lobby, PlayerBase
+from token_form import TokenGetter
+
+JWT_SIGNING_KEY = "9a1234d756b08fc143a5fd67c415c91d2c4bc4ddb2387c2aea1bc7eb35b632f7"
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE = timedelta(hours=24)
+LOBBY_EXPIRE = timedelta(hours=3)
+
+Base.metadata.create_all(bind=engine)
+app = FastAPI()
+token_getter = TokenGetter()
+
+if __name__ == '__main__':
+    uvicorn.run(app='main:app', host="127.0.0.1", port=8000)  # , reload=True)
+
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+
+def create_access_token(db: Session, username: str):
+    player = crud.create_player(db, username)
+    to_encode = {"id": player.id, "exp": datetime.utcnow() + ACCESS_TOKEN_EXPIRE}
+    encoded_jwt = jwt.encode(to_encode, JWT_SIGNING_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+def get_player(token: str = Depends(token_getter), db: Session = Depends(get_db)) -> Player:
+    def exception(detail: str = "Invalid authentication credentials"):
+        return HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=detail,
+            headers={"authorization": "token"},
+        )
+
+    try:
+        payload = jwt.decode(token, JWT_SIGNING_KEY, algorithms=[ALGORITHM])
+        player_id: int = payload.get("id")
+        if player_id is None:
+            raise exception()
+        exp: datetime = datetime.utcfromtimestamp(payload.get("exp"))
+        if datetime.utcnow() >= exp:
+            raise exception("Token expired")
+    except JWTError:
+        raise exception()
+    player = crud.get_player(db, player_id)
+    if not player:
+        raise exception()
+    return player
+
+
+def get_lobby(player: Player = Depends(get_player)) -> Lobby:
+    lobby = player.lobby
+    if lobby is not None:
+        return lobby
+    raise HTTPException(status.HTTP_400_BAD_REQUEST, "Player is not in a lobby")
+
+
+def success(msg: str = "Success"):
+    return Response(msg)
+
+
+@app.get("/")
+async def root():
+    return {"message": "Hello World"}
+
+
+@app.get("/login/{name}", response_model=Token)
+async def login(name: str, db: Session = Depends(get_db)):
+    access_token = create_access_token(db, name)
+    return {"access_token": access_token, "token_type": "bearer"}
+
+
+@app.get("/logout")
+async def logout(db: Session = Depends(get_db), player: Player = Depends(get_player)):
+    crud.delete_player(db, player)
+    return success()
+
+
+@app.get("/leave")
+async def leave_lobby(db: Session = Depends(get_db), player: Player = Depends(get_player), lobby: Lobby = Depends(get_lobby)):
+    # first player is always host
+    if player == lobby.host and len(lobby.player) == 1:
+        crud.delete_lobby(db, lobby)
+        return success()
+    lobby.player.remove(player)
+    return success()
+
+
+@app.get("/create")
+async def create_lobby(db: Session = Depends(get_db), player: Player = Depends(get_player)):
+    if player.lobby is not None:
+        await leave_lobby(db, player)
+    lobby = crud.create_lobby(db, player)
+    return {"code": lobby.code}
+
+
+@app.get("/join/{lobby_code}")
+async def join_lobby(lobby_code: str, db: Session = Depends(get_db), player: Player = Depends(get_player)):
+    lobby = crud.get_lobby_by_code(db, lobby_code)
+    if lobby is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Can't find lobby")
+    lobby.player.append(player)
+    return success()
+
+
+@app.get("/kick/{player_id}")
+async def kick_player(player_id: int, player: Player = Depends(get_player), lobby: Lobby = Depends(get_lobby)):
+    if player != lobby.host:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Only host can kick players")
+    for p in lobby.player:
+        if p.id == player_id:
+            player = p
+            break
+    else:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Can't find player in lobby")
+    lobby.player.remove(player)
+    return success()
+
+
+@app.get("/start")
+async def start_game(lobby: Lobby = Depends(get_lobby)):
+    lobby.started = True
+    return success()
+
+
+@app.get("/finish")
+async def start_game(db: Session = Depends(get_db), lobby: Lobby = Depends(get_lobby)):
+    crud.delete_lobby(db, lobby)
+    return success()
+
+
+@app.get("/pos/{pos}")
+async def upload_position(pos: str, player: Player = Depends(get_player)):
+    player.pos = pos
+    return success()
+
+
+@app.get("/player", response_model=list[PlayerBase])
+async def get_player_positions(lobby: Lobby = Depends(get_lobby)):
+    return lobby.player
