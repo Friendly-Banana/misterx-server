@@ -3,14 +3,20 @@ from datetime import datetime
 from pydantic import BaseModel
 
 
+class PositionUpdate(BaseModel):
+    # tuple[float, float] not suitable for db
+    coordinates: str
+
+
 class PlayerBase(BaseModel):
     id: int
     name: str
-    misterX: bool
-    pos: str
+    mister_x: bool
+    pos: str | None
 
 
 class Player(PlayerBase):
+    created_at: datetime
     lobby: "Lobby"
 
     class Config:

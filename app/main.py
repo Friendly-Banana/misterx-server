@@ -1,28 +1,25 @@
 from datetime import timedelta, datetime
 
-import uvicorn
 from fastapi import FastAPI, Depends, HTTPException, Response
 from jose import jwt, JWTError
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from starlette import status
 
+from schemas import Player, Lobby, PositionUpdate, PlayerBase
 from app.sql import crud
 from app.sql.database import Base, engine, SessionLocal
-from app.sql.schemas import Player, Lobby, PlayerBase
 from token_form import TokenGetter
 
 JWT_SIGNING_KEY = "9a1234d756b08fc143a5fd67c415c91d2c4bc4ddb2387c2aea1bc7eb35b632f7"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE = timedelta(hours=24)
 LOBBY_EXPIRE = timedelta(hours=3)
+PLAYER_EXPIRE = timedelta(days=3)
 
 Base.metadata.create_all(bind=engine)
 app = FastAPI()
 token_getter = TokenGetter()
-
-if __name__ == '__main__':
-    uvicorn.run(app='main:app', host="127.0.0.1", port=8000)  # , reload=True)
 
 
 class Token(BaseModel):
@@ -97,14 +94,13 @@ async def logout(db: Session = Depends(get_db), player: Player = Depends(get_pla
     return success()
 
 
-@app.get("/leave")
-async def leave_lobby(db: Session = Depends(get_db), player: Player = Depends(get_player), lobby: Lobby = Depends(get_lobby)):
+async def leave_lobby(db: Session, player: Player):
+    lobby = get_lobby(player)
     # first player is always host
     if player == lobby.host and len(lobby.player) == 1:
         crud.delete_lobby(db, lobby)
-        return success()
-    lobby.player.remove(player)
-    return success()
+    else:
+        lobby.player.remove(player)
 
 
 @app.get("/create")
@@ -112,7 +108,7 @@ async def create_lobby(db: Session = Depends(get_db), player: Player = Depends(g
     if player.lobby is not None:
         await leave_lobby(db, player)
     lobby = crud.create_lobby(db, player)
-    return {"code": lobby.code}
+    return {"code": lobby.code, "id": player.id}
 
 
 @app.get("/join/{lobby_code}")
@@ -121,7 +117,7 @@ async def join_lobby(lobby_code: str, db: Session = Depends(get_db), player: Pla
     if lobby is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Can't find lobby")
     lobby.player.append(player)
-    return success()
+    return {"id": player.id}
 
 
 @app.get("/kick/{player_id}")
@@ -138,6 +134,12 @@ async def kick_player(player_id: int, player: Player = Depends(get_player), lobb
     return success()
 
 
+@app.get("/leave")
+async def leave(db: Session = Depends(get_db), player: Player = Depends(get_player)):
+    await leave_lobby(db, player)
+    return success()
+
+
 @app.get("/start")
 async def start_game(lobby: Lobby = Depends(get_lobby)):
     lobby.started = True
@@ -145,17 +147,17 @@ async def start_game(lobby: Lobby = Depends(get_lobby)):
 
 
 @app.get("/finish")
-async def start_game(db: Session = Depends(get_db), lobby: Lobby = Depends(get_lobby)):
+async def finish_game(db: Session = Depends(get_db), lobby: Lobby = Depends(get_lobby)):
     crud.delete_lobby(db, lobby)
     return success()
 
 
-@app.get("/pos/{pos}")
-async def upload_position(pos: str, player: Player = Depends(get_player)):
-    player.pos = pos
+@app.post("/pos")
+async def upload_position(pos: PositionUpdate, player: Player = Depends(get_player)):
+    player.pos = pos.coordinates
     return success()
 
 
 @app.get("/player", response_model=list[PlayerBase])
 async def get_player_positions(lobby: Lobby = Depends(get_lobby)):
-    return lobby.player
+    return [p.__dict__ for p in lobby.player]

@@ -1,15 +1,41 @@
 # Test your FastAPI endpoints
 
-GET http://127.0.0.1:8000/
+GET url
 Accept: application/json
 
-
-### Authorization by token, part 1. Retrieve and save token.
+### Authorization by token. Retrieve and save token.
 GET http://127.0.0.1:8000/login/user
 Accept: application/json
 
-> {% client.global.set("auth_token", response.body.json.access_token); %}
+> {% client.global.set("auth_token", response.body["access_token"]); %}
 
-### Authorization by token, part 2. Use token to authorize.
-GET https://httpbin.org/headers
+### create
+GET http://127.0.0.1:8000/create
+Authorization: Bearer {{auth_token}}
+
+### join
+GET http://127.0.0.1:8000/join/01
+Authorization: Bearer {{auth_token}}
+
+### leave
+GET http://127.0.0.1:8000/leave
+Authorization: Bearer {{auth_token}}
+
+### start
+GET http://127.0.0.1:8000/start
+Authorization: Bearer {{auth_token}}
+
+### finish
+GET http://127.0.0.1:8000/finish
+Authorization: Bearer {{auth_token}}
+
+### pos
+POST http://127.0.0.1:8000/pos
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{"coordinates": "1.444488889999 4"}
+
+### player
+GET http://127.0.0.1:8000/player
 Authorization: Bearer {{auth_token}}
