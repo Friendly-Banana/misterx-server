@@ -3,8 +3,8 @@ from datetime import datetime
 from sqlalchemy.orm import Session
 
 import schemas
-from app.main import LOBBY_EXPIRE, PLAYER_EXPIRE
-from app.sql import models
+from config import LOBBY_EXPIRE, PLAYER_EXPIRE
+from sql import models
 
 
 def get_player(db: Session, player_id: int) -> schemas.Player:

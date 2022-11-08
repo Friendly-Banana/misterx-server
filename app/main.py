@@ -1,4 +1,5 @@
-from datetime import timedelta, datetime
+import os
+from datetime import datetime
 
 from fastapi import FastAPI, Depends, HTTPException, Response
 from jose import jwt, JWTError
@@ -6,16 +7,11 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from starlette import status
 
+from config import ACCESS_TOKEN_EXPIRE, ALGORITHM, JWT_SIGNING_KEY
 from schemas import Player, Lobby, PositionUpdate, PlayerBase
-from app.sql import crud
-from app.sql.database import Base, engine, SessionLocal
+from sql import crud
+from sql.database import Base, engine, SessionLocal
 from token_form import TokenGetter
-
-JWT_SIGNING_KEY = "9a1234d756b08fc143a5fd67c415c91d2c4bc4ddb2387c2aea1bc7eb35b632f7"
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE = timedelta(hours=24)
-LOBBY_EXPIRE = timedelta(hours=3)
-PLAYER_EXPIRE = timedelta(days=3)
 
 Base.metadata.create_all(bind=engine)
 app = FastAPI()

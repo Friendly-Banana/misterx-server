@@ -1,10 +1,10 @@
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Union
 
 from sqlalchemy import Column, ForeignKey, Integer, String, TIMESTAMP, Boolean
 from sqlalchemy.orm import relationship, Mapped
 
-from app.sql.database import Base
+from sql.database import Base
 
 
 class Player(Base):
@@ -13,10 +13,10 @@ class Player(Base):
     id = Column(Integer, primary_key=True, autoincrement=True, index=True, unique=True)
     name: Mapped[str] = Column(String)
     mister_x: Mapped[bool] = Column(Boolean, default=False)
-    pos: Mapped[str | None] = Column(String)
+    pos: Mapped[Union[str, None]] = Column(String)
 
     created_at: Mapped[datetime] = Column(TIMESTAMP)
-    lobby_id: Mapped[int | None] = Column(ForeignKey("lobbies.id"))
+    lobby_id: Mapped[Union[int, None]] = Column(ForeignKey("lobbies.id"))
     lobby: Mapped[Optional["Lobby"]] = relationship("Lobby", back_populates="player")
 
 

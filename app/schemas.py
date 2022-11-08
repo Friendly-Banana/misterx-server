@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Union
 
 from pydantic import BaseModel
 
@@ -12,7 +13,7 @@ class PlayerBase(BaseModel):
     id: int
     name: str
     mister_x: bool
-    pos: str | None
+    pos: Union[str, None]
 
 
 class Player(PlayerBase):
