@@ -1,10 +1,9 @@
 from datetime import datetime
 
-from sqlalchemy.orm import Session
-
+from config import LOBBY_EXPIRE, PLAYER_EXPIRE
 from sql import models
 from sql import schemas
-from config import LOBBY_EXPIRE, PLAYER_EXPIRE
+from sqlalchemy.orm import Session
 
 
 def get_player(db: Session, player_id: int) -> schemas.Player:

@@ -105,6 +105,7 @@ async def leave_lobby(db: Session, player: Player):
         crud.delete_lobby(db, lobby)
     else:
         lobby.player.remove(player)
+        db.commit()
 
 
 @app.get("/create")
@@ -121,11 +122,13 @@ async def join_lobby(lobby_code: str, db: Session = Depends(get_db), player: Pla
     if lobby is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Can't find lobby")
     lobby.player.append(player)
-    return {"id": player.id}
+    db.commit()
+    return {"code": lobby.code, "id": player.id}
 
 
 @app.get("/kick/{player_id}")
-async def kick_player(player_id: int, player: Player = Depends(get_player), lobby: Lobby = Depends(get_lobby)):
+async def kick_player(player_id: int, db: Session = Depends(get_db), player: Player = Depends(get_player),
+                      lobby: Lobby = Depends(get_lobby)):
     if player != lobby.host:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Only host can kick players")
     for p in lobby.player:
@@ -135,6 +138,7 @@ async def kick_player(player_id: int, player: Player = Depends(get_player), lobb
     else:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Can't find player in lobby")
     lobby.player.remove(player)
+    db.commit()
     return success()
 
 
@@ -145,8 +149,9 @@ async def leave(db: Session = Depends(get_db), player: Player = Depends(get_play
 
 
 @app.get("/start")
-async def start_game(lobby: Lobby = Depends(get_lobby)):
+async def start_game(db: Session = Depends(get_db), lobby: Lobby = Depends(get_lobby)):
     lobby.started = True
+    db.commit()
     return success()
 
 
