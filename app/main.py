@@ -14,7 +14,7 @@ from sql.schemas import Player, Lobby, PositionUpdate, PlayerBase
 from token_form import TokenGetter
 
 Base.metadata.create_all(bind=engine)
-app = App(FastAPI())
+app = App(FastAPI(title="MisterX API", version="0.1.0", description="Chase your friends!"))
 token_getter = TokenGetter()
 
 
