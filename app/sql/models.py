@@ -7,6 +7,14 @@ from sqlalchemy.orm import relationship, Mapped
 from sql.database import Base
 
 
+# CREATE TABLE lobbies (
+# 	id INTEGER NOT NULL,
+# 	code VARCHAR,
+# 	created_at TIMESTAMP,
+# 	started BOOLEAN,
+# 	PRIMARY KEY (id)
+# )
+# CREATE UNIQUE INDEX ix_player_id ON player (id)
 class Player(Base):
     __tablename__ = "player"
 
@@ -20,6 +28,16 @@ class Player(Base):
     lobby: Mapped[Optional["Lobby"]] = relationship("Lobby", back_populates="player")
 
 
+# CREATE TABLE player (
+# 	id INTEGER NOT NULL,
+# 	name VARCHAR,
+# 	mister_x BOOLEAN,
+# 	pos VARCHAR,
+# 	created_at TIMESTAMP,
+# 	lobby_id INTEGER,
+# 	PRIMARY KEY (id),
+# 	FOREIGN KEY(lobby_id) REFERENCES lobbies (id)
+# )
 class Lobby(Base):
     __tablename__ = "lobbies"
 

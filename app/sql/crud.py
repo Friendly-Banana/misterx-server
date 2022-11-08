@@ -1,10 +1,10 @@
 from datetime import datetime
 
+from config import LOBBY_EXPIRE, PLAYER_EXPIRE
+from sql import models
 from sqlalchemy.orm import Session
 
 import schemas
-from config import LOBBY_EXPIRE, PLAYER_EXPIRE
-from sql import models
 
 
 def get_player(db: Session, player_id: int) -> schemas.Player:
@@ -13,6 +13,11 @@ def get_player(db: Session, player_id: int) -> schemas.Player:
 
 def get_lobby_by_code(db: Session, code: str) -> schemas.Lobby:
     return db.query(models.Lobby).filter(models.Lobby.code == code).first()
+
+
+def update_player_pos(db: Session, player_id: int, pos: str) -> schemas.Player:
+    db.query(models.Player).filter(models.Player.id == player_id).update({models.Player.pos: pos})
+    db.commit()
 
 
 def create_player(db: Session, name: str) -> schemas.Player:

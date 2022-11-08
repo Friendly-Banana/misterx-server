@@ -1,4 +1,3 @@
-import os
 from datetime import datetime
 
 from fastapi import FastAPI, Depends, HTTPException, Response
@@ -149,8 +148,8 @@ async def finish_game(db: Session = Depends(get_db), lobby: Lobby = Depends(get_
 
 
 @app.post("/pos")
-async def upload_position(pos: PositionUpdate, player: Player = Depends(get_player)):
-    player.pos = pos.coordinates
+async def upload_position(pos: PositionUpdate, db: Session = Depends(get_db), player: Player = Depends(get_player)):
+    crud.update_player_pos(db, player.id, pos.coordinates)
     return success()
 
 
