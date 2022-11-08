@@ -23,7 +23,7 @@ def get_lobby_by_code(code: str) -> schemas.Lobby | None:
 
 
 def create_player(name: str) -> schemas.Player:
-    db_player = models.Player(name=name, created_at=datetime.utcnow())
+    db_player = models.Player(name=name, last_access=datetime.utcnow())
     db.add(db_player)
     db.commit()
     db.refresh(db_player)
@@ -51,11 +51,11 @@ def delete_lobby(lobby: models.Lobby):
 
 def delete_old_lobbies(skip: int = 0, limit: int = 100) -> int:
     return lobbies.filter(
-        models.Lobby.created_at + LOBBY_EXPIRE >= datetime.utcnow()).offset(
+        models.Lobby.last_access + LOBBY_EXPIRE >= datetime.utcnow()).offset(
         skip).limit(limit).delete()
 
 
 def delete_old_player(skip: int = 0, limit: int = 100) -> int:
     return player.filter(
-        models.Player.created_at + PLAYER_EXPIRE >= datetime.utcnow()).offset(
+        models.Player.last_access + PLAYER_EXPIRE >= datetime.utcnow()).offset(
         skip).limit(limit).delete()

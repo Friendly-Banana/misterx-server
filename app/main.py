@@ -1,5 +1,6 @@
 from datetime import datetime
 
+from deta import App
 from fastapi import FastAPI, Depends, HTTPException, Response
 from jose import jwt, JWTError
 from pydantic import BaseModel
@@ -7,13 +8,13 @@ from sqlalchemy.orm import Session
 from starlette import status
 
 from config import ACCESS_TOKEN_EXPIRE, ALGORITHM, JWT_SIGNING_KEY
-from schemas import Player, Lobby, PositionUpdate, PlayerBase
+from app.sql.schemas import Player, Lobby, PositionUpdate, PlayerBase
 from sql import crud
 from sql.database import Base, engine, SessionLocal
 from token_form import TokenGetter
 
 Base.metadata.create_all(bind=engine)
-app = FastAPI()
+app = App(FastAPI())
 token_getter = TokenGetter()
 
 
@@ -70,6 +71,14 @@ def get_lobby(player: Player = Depends(get_player)) -> Lobby:
 
 def success(msg: str = "Success"):
     return Response(msg)
+
+
+# runs at 8am each day
+@app.lib.cron()
+def cron_job(event):
+    db: Session = Depends(get_db)
+    crud.delete_old_lobbies(db)
+    crud.delete_old_player(db)
 
 
 @app.get("/")

@@ -1,10 +1,11 @@
 from datetime import datetime
+from typing import Union
 
 from pydantic import BaseModel
 
 
 class PositionUpdate(BaseModel):
-    # TODO tuple[float, float] not suitable for db?
+    # tuple[float, float] not suitable for db
     coordinates: str
 
 
@@ -12,11 +13,11 @@ class PlayerBase(BaseModel):
     id: int
     name: str
     mister_x: bool
-    pos: str | None
+    pos: Union[str, None]
 
 
 class Player(PlayerBase):
-    created_at: datetime
+    last_access: datetime
     lobby: "Lobby"
 
     class Config:
