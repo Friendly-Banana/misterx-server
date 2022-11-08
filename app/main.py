@@ -8,9 +8,9 @@ from sqlalchemy.orm import Session
 from starlette import status
 
 from config import ACCESS_TOKEN_EXPIRE, ALGORITHM, JWT_SIGNING_KEY
-from app.sql.schemas import Player, Lobby, PositionUpdate, PlayerBase
 from sql import crud
 from sql.database import Base, engine, SessionLocal
+from sql.schemas import Player, Lobby, PositionUpdate, PlayerBase
 from token_form import TokenGetter
 
 Base.metadata.create_all(bind=engine)
@@ -76,14 +76,14 @@ def success(msg: str = "Success"):
 # runs at 8am each day
 @app.lib.cron()
 def cron_job(event):
-    db: Session = Depends(get_db)
+    db: Session = get_db()
     crud.delete_old_lobbies(db)
     crud.delete_old_player(db)
 
 
 @app.get("/")
 async def root():
-    return {"message": "Hello World"}
+    return "Hello World"
 
 
 @app.get("/login/{name}", response_model=Token)
